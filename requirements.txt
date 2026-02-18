@@ -1,7 +1,8 @@
 Flask==3.0.3
 Pillow==10.4.0
-numpy==2.0.1
+numpy==1.26.4
 pillow-heif==0.18.0
 qrcode==7.4.2
 gunicorn==22.0.0
+
 
