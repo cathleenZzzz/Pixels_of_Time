@@ -245,11 +245,11 @@ def generate_sorted_mosaic(
     if fast_mode:
         pixels = _sample_pixels_fast_mode(
             file_bytes_list=file_bytes_list,
-            total_pixels=input_pixels,
             max_pixels=fast_mode_sample_pixels,
             skip_alpha=skip_alpha,
             seed=0,
         )
+
         used_pixels = int(pixels.shape[0])
         if used_pixels <= 0:
             raise ValueError("Fast Mode sampling produced no pixels. Try different photos or disable skip-alpha.")
