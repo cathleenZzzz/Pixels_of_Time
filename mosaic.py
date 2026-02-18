@@ -79,69 +79,113 @@ def _choose_golden_dims_minpad(n: int) -> Tuple[int, int, int, float]:
 
 def _sample_pixels_fast_mode(
     file_bytes_list: List[bytes],
-    total_pixels: int,
     max_pixels: int,
     skip_alpha: bool,
+    hue_bins: int = 36,
+    val_bins: int = 16,
     seed: int = 0,
 ) -> np.ndarray:
     """
-    Fast-mode sampling without saving uploads:
-      - compute sampling probability p = max_pixels / total_pixels
-      - for each image, draw k ~ Binomial(n_i, p)
-      - sample k pixels from that image
+    Representative sampling:
+      - Spatially uniform sampling (grid stride) per image
+      - Then stratify by HSV (hue x value) to preserve color/brightness distribution
     """
-    if total_pixels <= max_pixels:
-        # no need to sample
-        all_pixels = []
-        for b in file_bytes_list:
-            im = Image.open(BytesIO(b)).convert("RGBA")
-            arr = np.asarray(im)
-            rgb = arr[..., :3][arr[..., 3] > 0] if skip_alpha else arr[..., :3].reshape(-1, 3)
-            if rgb.size:
-                all_pixels.append(rgb)
-        return np.vstack(all_pixels) if all_pixels else np.zeros((0, 3), dtype=np.uint8)
-
     rng = np.random.default_rng(seed)
-    p = max_pixels / float(total_pixels)
+    n_files = len(file_bytes_list)
+    if n_files == 0:
+        return np.zeros((0, 3), dtype=np.uint8)
 
-    chunks = []
+    # Budget per image (roughly even)
+    per_img_budget = max(10_000, max_pixels // n_files)
+
+    all_chunks = []
     used = 0
 
     for b in file_bytes_list:
+        if used >= max_pixels:
+            break
+
         im = Image.open(BytesIO(b)).convert("RGBA")
-        arr = np.asarray(im)
-        rgb = arr[..., :3][arr[..., 3] > 0] if skip_alpha else arr[..., :3].reshape(-1, 3)
+        arr = np.asarray(im)  # HxWx4 uint8
+
+        # Optional alpha filter
+        if skip_alpha:
+            mask = arr[..., 3] > 0
+            rgb_full = arr[..., :3][mask]
+            if rgb_full.size == 0:
+                continue
+            # Spatial information is lost after masking; for photos this is usually fine.
+            rgb = rgb_full
+        else:
+            # Keep spatial structure for stride sampling
+            rgb = arr[..., :3].reshape(-1, 3)
+
         n = rgb.shape[0]
         if n == 0:
             continue
 
-        # how many from this image?
-        k = int(rng.binomial(n, p))
-        if k <= 0:
-            continue
+        # Step 1: spatial-ish uniform sampling via stride
+        # Choose a stride so we get a manageable candidate pool.
+        # Candidate pool capped around ~4x per-image budget.
+        target_candidates = min(n, per_img_budget * 4)
+        stride = max(1, n // target_candidates)
+        candidates = rgb[::stride]
+        if candidates.shape[0] > target_candidates:
+            candidates = candidates[:target_candidates]
 
-        # avoid going over hard cap by too much
-        remaining = max_pixels - used
-        if remaining <= 0:
-            break
-        if k > remaining:
-            k = remaining
+        # Step 2: stratify by HSV bins to preserve distribution
+        h, v = _rgb_to_hv_keys(candidates)
+        hbin = np.clip((h * (hue_bins - 1)).astype(np.int32), 0, hue_bins - 1)
+        vbin = np.clip((v * (val_bins - 1)).astype(np.int32), 0, val_bins - 1)
+        bin_id = vbin * hue_bins + hbin
+        nbins = hue_bins * val_bins
 
-        idx = rng.choice(n, size=k, replace=False)
-        chunks.append(rgb[idx])
-        used += k
+        # How many to keep from each bin
+        img_budget = min(per_img_budget, max_pixels - used)
+        per_bin = max(1, img_budget // nbins)
 
-        if used >= max_pixels:
-            break
+        chosen_idx = []
+        for bid in range(nbins):
+            idxs = np.where(bin_id == bid)[0]
+            if idxs.size == 0:
+                continue
+            k = min(per_bin, idxs.size)
+            pick = rng.choice(idxs, size=k, replace=False)
+            chosen_idx.append(pick)
 
-    if not chunks:
+        if chosen_idx:
+            chosen_idx = np.concatenate(chosen_idx)
+        else:
+            # fallback: random sample
+            k = min(img_budget, candidates.shape[0])
+            chosen_idx = rng.choice(candidates.shape[0], size=k, replace=False)
+
+        # If we’re under budget (bins were sparse), top up randomly from candidates
+        if chosen_idx.size < img_budget and candidates.shape[0] > chosen_idx.size:
+            remaining = img_budget - chosen_idx.size
+            pool = np.setdiff1d(np.arange(candidates.shape[0]), chosen_idx, assume_unique=False)
+            if pool.size > 0:
+                extra = rng.choice(pool, size=min(remaining, pool.size), replace=False)
+                chosen_idx = np.concatenate([chosen_idx, extra])
+
+        chunk = candidates[chosen_idx]
+        all_chunks.append(chunk)
+        used += chunk.shape[0]
+
+        # free big arrays ASAP
+        del arr, rgb, candidates
+
+    if not all_chunks:
         return np.zeros((0, 3), dtype=np.uint8)
 
-    pixels = np.vstack(chunks)
+    pixels = np.vstack(all_chunks)
 
-    # If we're slightly under the cap due to binomial variance, that's fine.
+    # Hard cap, just in case
+    if pixels.shape[0] > max_pixels:
+        idx = rng.choice(pixels.shape[0], size=max_pixels, replace=False)
+        pixels = pixels[idx]
+
     return pixels
-
 
 def _load_pixels_memmap(file_bytes_list: List[bytes], total_pixels: int, skip_alpha: bool, mm_path: Path):
     pixels = np.memmap(mm_path, dtype=np.uint8, mode="w+", shape=(total_pixels, 3))
