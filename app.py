@@ -23,7 +23,7 @@ app.config["MAX_CONTENT_LENGTH"] = 250 * 1024 * 1024  # 250MB request cap
 # Full mode: allow up to ~120M pixels (still heavy but feasible on decent machines)
 FULL_MODE_MAX_PIXELS = 120_000_000
 # Fast mode: cap to e.g. 15M sampled pixels (stable + fast on typical servers)
-FAST_MODE_SAMPLE_PIXELS = 1_500_000
+FAST_MODE_SAMPLE_PIXELS = 1_000_000
 
 
 @app.get("/")
