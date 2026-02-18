@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pixel Mosaic + QR</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1>Pixel Mosaic + QR</h1>
+    <p class="sub">
+      Upload photos → Make Mosaic → download a single PNG sized to 1/4 US Letter (1275×1650 px).
+      Uploads are processed in-memory/temporary files and not kept.
+    </p>
+
+    <section class="card">
+      <label class="label">Photos (HEIC/JPG/PNG…)</label>
+      <input id="files" type="file" multiple />
+
+      <div class="row">
+        <label class="label">Hue start (degrees)</label>
+        <input id="hueStart" type="number" value="30" min="0" max="360" step="1" />
+      </div>
+
+      <div class="row">
+        <label class="label">
+          <input id="skipAlpha" type="checkbox" checked />
+          Ignore fully transparent pixels
+        </label>
+      </div>
+
+      <button id="go" class="btn">Make Mosaic</button>
+
+      <div id="status" class="status"></div>
+
+      <a id="download" class="btn ghost" style="display:none;" download="mosaic_with_qr.png">
+        Download mosaic_with_qr.png
+      </a>
+    </section>
+
+    <footer class="foot">
+      Tip: large iPhone libraries can be heavy. Start with fewer photos to test.
+    </footer>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
