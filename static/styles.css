@@ -13,3 +13,4 @@ input[type="number"] { width: 120px; padding: 6px 8px; }
 .btn.ghost { background: transparent; color: #111; border: 1px solid #111; }
 .status { margin-top: 12px; color: #333; min-height: 18px; white-space: pre-wrap; }
 .foot { margin-top: 14px; color: #666; font-size: 13px; }
+.hint { margin-top: 6px; color: #555; font-size: 13px; line-height: 1.35; }
