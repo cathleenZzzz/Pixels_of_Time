@@ -13,7 +13,7 @@ register_heif_opener()
 PHI = (1 + 5 ** 0.5) / 2  # ~1.618
 
 # 1/4 US Letter @300DPI
-LETTER_QUARTER_PX = (1500_1159)  # (W,H)
+LETTER_QUARTER_PX = (1500, 1159)  # (W,H)
 DEFAULT_HUE_START_DEG = 30.0
 
 
