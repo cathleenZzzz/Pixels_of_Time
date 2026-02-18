@@ -10,8 +10,10 @@ from mosaic import (
     compose_quarter_letter_with_qr,
     LETTER_QUARTER_PX,
 )
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Hard limits (tune for your deployment)
 MAX_FILES = 60
