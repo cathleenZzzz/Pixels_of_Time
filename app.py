@@ -16,14 +16,14 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Hard limits (tune for your deployment)
-MAX_FILES = 60
+MAX_FILES = 20
 app.config["MAX_CONTENT_LENGTH"] = 250 * 1024 * 1024  # 250MB request cap
 
 # Pixel caps
 # Full mode: allow up to ~120M pixels (still heavy but feasible on decent machines)
 FULL_MODE_MAX_PIXELS = 120_000_000
 # Fast mode: cap to e.g. 15M sampled pixels (stable + fast on typical servers)
-FAST_MODE_SAMPLE_PIXELS = 15_000_000
+FAST_MODE_SAMPLE_PIXELS = 1_500_000
 
 
 @app.get("/")
