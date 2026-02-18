@@ -10,12 +10,12 @@
   <main class="wrap">
     <h1>Pixel Mosaic + QR</h1>
     <p class="sub">
-      Upload photos → Make Mosaic → download a single PNG sized to 1/4 US Letter (1275×1650 px).
-      Uploads are processed in-memory/temporary files and not kept.
+      Upload photos → Make Mosaic → download one PNG sized to <b>{{out_w}}×{{out_h}}</b> (¼ US Letter @300DPI).
+      Uploads are processed in memory / temporary scratch and not kept.
     </p>
 
     <section class="card">
-      <label class="label">Photos (HEIC/JPG/PNG…)</label>
+      <label class="label">Photos (HEIC/JPG/PNG…) — max {{max_files}}</label>
       <input id="files" type="file" multiple />
 
       <div class="row">
@@ -30,6 +30,18 @@
         </label>
       </div>
 
+      <div class="row">
+        <label class="label">
+          <input id="fastMode" type="checkbox" />
+          Fast Mode (recommended for large uploads)
+        </label>
+        <div class="hint">
+          Full Mode cap: <b>{{"{:,}".format(full_cap)}}</b> pixels.
+          Fast Mode samples up to <b>{{"{:,}".format(fast_cap)}}</b> pixels.
+          If Full Mode exceeds cap, you’ll be asked to enable Fast Mode or upload fewer photos.
+        </div>
+      </div>
+
       <button id="go" class="btn">Make Mosaic</button>
 
       <div id="status" class="status"></div>
@@ -40,10 +52,13 @@
     </section>
 
     <footer class="foot">
-      Tip: large iPhone libraries can be heavy. Start with fewer photos to test.
+      Tip: start with 10–20 photos to test, then scale up. Fast Mode usually looks the same to humans.
     </footer>
   </main>
 
+  <script>
+    window.__MAX_FILES__ = {{max_files}};
+  </script>
   <script src="/static/app.js"></script>
 </body>
 </html>
